@@ -17,7 +17,7 @@
 
 <h1>Coronavirus Tracker Application</h1>
 <p>This application lists all the current COVID-19 cases accross the globe</p>
-<div class="jumbotron">
+<div class="jumbotron" style="padding: 1rem 2rem;">
     <h1 class="display-4" th:text="${totalReportedCases}"></h1>
     <p class="lead">Total cases reported as of today</p>
     <hr class="my-4">
@@ -25,8 +25,95 @@
         <span>New cases reported since previous day :</span>
         <span th:text="${totalNewCases}"></span>
     </p>
-
 </div>
+
+    <!--code for map-->
+
+    <style>
+#chartdiv {
+  width: 100%;
+  height: 500px;
+}
+</style>
+
+    <!-- Resources -->
+    <script src="https://www.amcharts.com/lib/4/core.js"></script>
+    <script src="https://www.amcharts.com/lib/4/maps.js"></script>
+    <script src="https://www.amcharts.com/lib/4/geodata/worldLow.js"></script>
+    <script src="https://www.amcharts.com/lib/4/geodata/data/countries2.js"></script>
+    <script src="https://www.amcharts.com/lib/4/themes/animated.js"></script>
+
+    <!-- Chart code -->
+    <script>
+am4core.ready(function() {
+
+// Themes begin
+am4core.useTheme(am4themes_animated);
+// Themes end
+
+var continents = {
+  "AF": 0,
+  "AN": 1,
+  "AS": 2,
+  "EU": 3,
+  "NA": 4,
+  "OC": 5,
+  "SA": 6
+}
+
+// Create map instance
+var chart = am4core.create("chartdiv", am4maps.MapChart);
+chart.projection = new am4maps.projections.Miller();
+
+// Create map polygon series for world map
+var worldSeries = chart.series.push(new am4maps.MapPolygonSeries());
+worldSeries.useGeodata = true;
+worldSeries.geodata = am4geodata_worldLow;
+worldSeries.exclude = ["AQ"];
+
+var worldPolygon = worldSeries.mapPolygons.template;
+worldPolygon.tooltipText = "{name}: {value}";
+worldPolygon.nonScalingStroke = true;
+worldPolygon.strokeOpacity = 0.5;
+worldPolygon.fill = am4core.color("#eee");
+worldPolygon.propertyFields.fill = "color";
+
+var hs = worldPolygon.states.create("hover");
+hs.properties.fill = chart.colors.getIndex(9);
+
+// Set up data for countries
+var data = [];
+var totalCasesbyCountry = JSON.parse(("[[${totalCaseGroupedbyCountry}]]").replace(/&quot;/g,'"'));
+for(var id in am4geodata_data_countries2) {
+  if (am4geodata_data_countries2.hasOwnProperty(id)) {
+    var country = am4geodata_data_countries2[id];
+    if(country.country === "United States"){
+        totalCasesbyCountry["United States"] = totalCasesbyCountry["US"];
+    }
+    else if(country.country === "Russian Federation"){
+        totalCasesbyCountry["Russian Federation"] = totalCasesbyCountry["Russia"];
+    }
+    //console.log(totalCasesbyCountry[country.country]);
+    if (country.maps.length) {
+      data.push({
+        id: id,
+        color: chart.colors.getIndex(continents[country.continent_code]),
+        map: country.maps[0],
+        value:  totalCasesbyCountry[country.country]
+      });
+    }
+  }
+}
+worldSeries.data = data;
+
+// Zoom control
+chart.zoomControl = new am4maps.ZoomControl();
+}); // end am4core.ready()
+</script>
+
+    <!-- HTML -->
+    <div id="chartdiv"></div>
+
 
 
 <table class="table">
